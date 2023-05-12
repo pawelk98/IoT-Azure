@@ -2,8 +2,11 @@
 using DeviceSDK;
 using Opc.UaFx.Client;
 using Opc.UaFx;
+using Microsoft.Azure.Devices;
 
-string deviceConnectionString = "HostName=zajecia2023.azure-devices.net;DeviceId=Device1;SharedAccessKey=eVc1/BofDrZdvWYa8JBrBVmMyTLPmtSoxZy1WXE05MA=";
+List<string> deviceConnectionStrings = new List<string>();
+deviceConnectionStrings.Add("HostName=zajecia2023.azure-devices.net;DeviceId=Device1;SharedAccessKey=eVc1/BofDrZdvWYa8JBrBVmMyTLPmtSoxZy1WXE05MA=");
+deviceConnectionStrings.Add("HostName=zajecia2023.azure-devices.net;DeviceId=Device2;SharedAccessKey=kQ9xHtbIHJFIgoZNTCDaFrNdBF5jbNxZvszySxSNFrQ=");
 List<string> deviceIds = new List<string>();
 
 try
@@ -11,22 +14,31 @@ try
     using (var client = new OpcClient("opc.tcp://localhost:4840"))
     {
         client.Connect();
-        Console.WriteLine("Client is connected.");
+        Console.WriteLine("Client is connected");
 
-        var deviceClient = DeviceClient.CreateFromConnectionString(deviceConnectionString);
-        await deviceClient.OpenAsync();
-        var device = new VirtualDevice(deviceClient);
-        Console.WriteLine("Połączenia udane");
-        await device.InitializeHandlers();
-        Console.WriteLine("Inicjalizacja udana");
+        List<DeviceClient> deviceClients = new List<DeviceClient>();
+        List<VirtualDevice> devices = new List<VirtualDevice>();
+
+        Console.WriteLine("Setting up device clients");
+        for(int i = 0; i < deviceConnectionStrings.Count; i++)
+        {
+            deviceClients.Add(DeviceClient.CreateFromConnectionString(deviceConnectionStrings[i]));
+            await deviceClients[i].OpenAsync();
+            devices.Add(new VirtualDevice(deviceClients[i]));
+            await devices[i].InitializeHandlers();
+        }
+        Console.WriteLine("Device clients OK");
 
         var node = client.BrowseNode(OpcObjectTypes.ObjectsFolder);
         SetDeviceIds(node, deviceIds);
 
         while(true)
         {
-            await SendTelemetry(client, deviceIds[0], device);
-            await Task.Delay(1000);
+            for(int i = 0; i < deviceIds.Count && i < devices.Count; i++) 
+                await SendTelemetry(client, deviceIds[i], devices[i]);
+
+            Console.WriteLine("Telemetry data sent");
+            await Task.Delay(5000);
         }
     }
 }
