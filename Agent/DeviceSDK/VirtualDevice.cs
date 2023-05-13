@@ -9,6 +9,17 @@ namespace DeviceSDK
     {
         private readonly DeviceClient deviceClient;
 
+        [Flags]
+        public enum DeviceErrors
+        {
+            None = 0,
+            Emergency_stop = 1,
+            Power_failure = 2,
+            Sensor_failure = 4,
+            Unknown = 8
+        }
+
+
         public VirtualDevice(DeviceClient deviceClient)
         {
             this.deviceClient = deviceClient;
@@ -62,7 +73,7 @@ namespace DeviceSDK
         #endregion
 
         #region Device Twin
-        public async Task UpdateTwinAsync()
+        public async Task UpdateTwinAsync(DeviceErrors deviceErrors, int productionRate)
         {
             var twin = await deviceClient.GetTwinAsync();
 
@@ -70,7 +81,8 @@ namespace DeviceSDK
             Console.WriteLine();
 
             var reportedProperties = new TwinCollection();
-            reportedProperties["DateTimeLastAppLaunch"] = DateTime.Now;
+            reportedProperties["DeviceErrors"] = deviceErrors;
+            reportedProperties["ProductionRate"] = productionRate;
 
             await deviceClient.UpdateReportedPropertiesAsync(reportedProperties);
         }
