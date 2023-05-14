@@ -43,12 +43,12 @@ try
             for(int i = 0; i < deviceIds.Count && i < devices.Count; i++)
             {
                 await SendTelemetry(client, devices[i]);
+                Console.WriteLine($"Telemetry data sent\t\t{deviceIds[i]}");
                 await CheckErrors(client, devices[i]);
                 await CheckProductionRate(client, devices[i]);
             }
 
-            Console.WriteLine("Telemetry data sent");
-            await Task.Delay(5000);
+            await Task.Delay(config.telemetry_data_send_interval);
         }
     }
 }
@@ -79,7 +79,7 @@ async Task CheckErrors(OpcClient client, VirtualDevice device)
 
     if(device.Errors != device_errors)
     {
-        Console.WriteLine($"{device.DeviceId}: New errors: {device_errors}");
+        Console.WriteLine($"Errors\t\t\t\t{device.DeviceId}\t\t{device_errors}");
         await device.SendMessage(errors);
         await device.UpdateTwinErrorsAsync(device_errors);
         device.Errors = device_errors;
@@ -92,7 +92,7 @@ async Task CheckProductionRate(OpcClient client, VirtualDevice device)
 
     if (device.ProductionRate != production_rate)
     {
-        Console.WriteLine($"{device.DeviceId}: Production rate changed to: {production_rate}");
+        Console.WriteLine($"Production rate change\t\t{device.DeviceId}\t\t{production_rate}");
         await device.UpdateTwinProductionRateAsync(production_rate);
         device.ProductionRate = production_rate;
     }
@@ -119,4 +119,5 @@ public class ConfigJsonFile
 {
     public string opc_server_adress { get; set; }
     public string[] device_connection_strings { get; set; }
+    public int telemetry_data_send_interval { get; set; }
 }

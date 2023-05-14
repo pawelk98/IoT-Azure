@@ -82,7 +82,7 @@ namespace DeviceSDK
         private async Task<MethodResponse> EmergencyStop(MethodRequest methodRequest, object userContext)
         {
             opcClient.CallMethod(DeviceId, $"{DeviceId}/EmergencyStop");
-            Console.WriteLine($"{DeviceId}: Wywołano EmergencyStop");
+            Console.WriteLine($"Direct Method\t\t\t{DeviceId}\t\tEmergencyStop");
             return new MethodResponse(0);
         }
 
@@ -90,7 +90,7 @@ namespace DeviceSDK
         {
             Errors = DeviceErrors.None;
             opcClient.CallMethod(DeviceId, $"{DeviceId}/ResetErrorStatus");
-            Console.WriteLine($"{DeviceId}: Wywołano ResetErrorStatus");
+            Console.WriteLine($"Direct Method\t\t\t{DeviceId}\t\tResetErrorStatus");
             return new MethodResponse(0);
         }
         #endregion
