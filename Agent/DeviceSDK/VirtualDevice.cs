@@ -42,16 +42,6 @@ namespace DeviceSDK
             eventMessage.ContentType = MediaTypeNames.Application.Json;
             eventMessage.ContentEncoding = "utf-8";
 
-            var type = data.GetType();
-            if(type.GetProperty("temperature") != null)
-            {
-                double temperature = (double)type.GetProperty("temperature").GetValue(data);
-                if (temperature < NormalTemperatureRange[0] || temperature > NormalTemperatureRange[1])
-                    eventMessage.Properties.Add("temperature_alert", "true");
-                else
-                    eventMessage.Properties.Add("temperature_alert", "false");
-            }
-
             await deviceClient.SendEventAsync(eventMessage);
         }
         #endregion

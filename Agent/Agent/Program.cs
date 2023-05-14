@@ -75,7 +75,10 @@ async Task CheckErrors(OpcClient client, VirtualDevice device)
 {
     VirtualDevice.DeviceErrors device_errors = (VirtualDevice.DeviceErrors)client.ReadNode($"{device.DeviceId}/DeviceError").Value;
 
-    var errors = new { device_errors };
+    var errors = new {
+        workorder_id = client.ReadNode($"{device.DeviceId}/WorkorderId").Value,
+        device_errors
+    };
 
     if(device.Errors != device_errors)
     {

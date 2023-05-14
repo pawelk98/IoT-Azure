@@ -4,9 +4,5 @@
     "HostName=zajecia2023.azure-devices.net;DeviceId=Device2;SharedAccessKey=kQ9xHtbIHJFIgoZNTCDaFrNdBF5jbNxZvszySxSNFrQ="
   ],
   "opc_server_adress": "opc.tcp://localhost:4840",
-  "telemetry_data_send_interval": 10000,
-  "normal_temperature_range": [
-    0,
-    150
-  ]
+  "telemetry_data_send_interval": 5000
 }

@@ -1,0 +1,34 @@
+SELECT
+    workorder_id,
+    MAX(temperature) AS max_temperature,
+    MIN(temperature) AS min_temperature,
+    AVG(temperature) AS avg_temperature
+INTO [temperature] 
+FROM [iothub]
+GROUP BY workorder_id, TumblingWindow(minute,5)
+
+SELECT
+    workorder_id,
+    goodcount,
+    badcount 
+INTO [goodbadcount]
+FROM [iothub]
+WHERE  NOT (workorder_id='00000000-0000-0000-0000-000000000000')
+
+SELECT
+    workorder_id,
+    SUM(goodcount)/(SUM(badcount)+SUM(goodcount))*100 as KPIs
+INTO [prodkpi]
+FROM [iothub]
+WHERE  NOT (workorder_id='00000000-0000-0000-0000-000000000000')
+GROUP BY workorder_id, TumblingWindow(minute,5)
+
+SELECT workorder_id, error_count
+INTO [errors]
+ FROM (SELECT 
+    workorder_id, 
+    COUNT(*) AS error_count
+FROM [iothub]
+WHERE device_error IS NOT NULL
+GROUP BY workorder_id, TumblingWindow(minute,1)) AS test
+WHERE  test.error_count > 3
