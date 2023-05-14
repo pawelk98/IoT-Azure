@@ -2,9 +2,9 @@
 using Microsoft.Azure.Devices.Shared;
 using Newtonsoft.Json;
 using Opc.UaFx.Client;
-using System.Diagnostics;
 using System.Net.Mime;
 using System.Text;
+
 namespace DeviceSDK
 {
     public class VirtualDevice
@@ -25,12 +25,13 @@ namespace DeviceSDK
         public int ProductionRate { get; set; } = 0;
         public DeviceErrors Errors { get; set; } = DeviceErrors.None;
         public string DeviceId { get; set; } = string.Empty;
+        public double[] NormalTemperatureRange { get; }
 
-
-        public VirtualDevice(DeviceClient deviceClient, OpcClient opcClient)
+        public VirtualDevice(DeviceClient deviceClient, OpcClient opcClient, double[] normalTemperatureRange)
         {
             this.deviceClient = deviceClient;
             this.opcClient = opcClient;
+            NormalTemperatureRange = normalTemperatureRange;
         }
 
         #region Sending Messages
@@ -40,6 +41,17 @@ namespace DeviceSDK
             Message eventMessage = new Message(Encoding.UTF8.GetBytes(dataString));
             eventMessage.ContentType = MediaTypeNames.Application.Json;
             eventMessage.ContentEncoding = "utf-8";
+
+            var type = data.GetType();
+            if(type.GetProperty("temperature") != null)
+            {
+                double temperature = (double)type.GetProperty("temperature").GetValue(data);
+                if (temperature < NormalTemperatureRange[0] || temperature > NormalTemperatureRange[1])
+                    eventMessage.Properties.Add("temperature_alert", "true");
+                else
+                    eventMessage.Properties.Add("temperature_alert", "false");
+            }
+
             await deviceClient.SendEventAsync(eventMessage);
         }
         #endregion

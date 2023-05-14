@@ -23,7 +23,7 @@ try
         {
             deviceClients.Add(DeviceClient.CreateFromConnectionString(config.device_connection_strings[i]));
             await deviceClients[i].OpenAsync();
-            devices.Add(new VirtualDevice(deviceClients[i], client));
+            devices.Add(new VirtualDevice(deviceClients[i], client, config.normal_temperature_range));
             await devices[i].InitializeHandlers();
         }
         Console.WriteLine("Device clients OK");
@@ -120,4 +120,5 @@ public class ConfigJsonFile
     public string opc_server_adress { get; set; }
     public string[] device_connection_strings { get; set; }
     public int telemetry_data_send_interval { get; set; }
+    public double[] normal_temperature_range { get; set; }
 }
