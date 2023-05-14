@@ -2,21 +2,14 @@
 using DeviceSDK;
 using Opc.UaFx.Client;
 using Opc.UaFx;
-using Microsoft.Azure.Devices;
 
 
 List<string> deviceConnectionStrings = new List<string>();
 deviceConnectionStrings.Add("HostName=zajecia2023.azure-devices.net;DeviceId=Device1;SharedAccessKey=eVc1/BofDrZdvWYa8JBrBVmMyTLPmtSoxZy1WXE05MA=");
 deviceConnectionStrings.Add("HostName=zajecia2023.azure-devices.net;DeviceId=Device2;SharedAccessKey=kQ9xHtbIHJFIgoZNTCDaFrNdBF5jbNxZvszySxSNFrQ=");
+List<DeviceClient> deviceClients = new List<DeviceClient>();
+List<VirtualDevice> devices = new List<VirtualDevice>();
 List<string> deviceIds = new List<string>();
-List<VirtualDevice.DeviceErrors> currentErrors = new List<VirtualDevice.DeviceErrors>();
-List<int> currentProductionRates = new List<int>();
-
-for(int i = 0; i < deviceConnectionStrings.Count; i++)
-{
-    currentErrors.Add(VirtualDevice.DeviceErrors.None);
-    currentProductionRates.Add(0);
-}
 
 try
 {
@@ -25,15 +18,12 @@ try
         client.Connect();
         Console.WriteLine("Client is connected");
 
-        List<DeviceClient> deviceClients = new List<DeviceClient>();
-        List<VirtualDevice> devices = new List<VirtualDevice>();
-
         Console.WriteLine("Setting up device clients");
         for(int i = 0; i < deviceConnectionStrings.Count; i++)
         {
             deviceClients.Add(DeviceClient.CreateFromConnectionString(deviceConnectionStrings[i]));
             await deviceClients[i].OpenAsync();
-            devices.Add(new VirtualDevice(deviceClients[i]));
+            devices.Add(new VirtualDevice(deviceClients[i], client));
             await devices[i].InitializeHandlers();
         }
         Console.WriteLine("Device clients OK");
@@ -41,12 +31,20 @@ try
         var node = client.BrowseNode(OpcObjectTypes.ObjectsFolder);
         SetDeviceIds(node, deviceIds);
 
+        for(int i = 0; i < devices.Count; i++)
+            devices[i].DeviceId = deviceIds[i];
+
+        Console.WriteLine("Devices connected:");
+        foreach(var deviceId in deviceIds)
+            Console.WriteLine($"\t{deviceId}");
+
         while(true)
         {
             for(int i = 0; i < deviceIds.Count && i < devices.Count; i++)
             {
-                await SendTelemetry(client, deviceIds[i], devices[i]);
-                currentErrors[i] = await CheckErrors(client, deviceIds[i], devices[i], currentErrors[i]);
+                await SendTelemetry(client, devices[i]);
+                await CheckErrors(client, devices[i]);
+                await CheckProductionRate(client, devices[i]);
             }
 
             Console.WriteLine("Telemetry data sent");
@@ -59,34 +57,47 @@ catch (Exception ex)
     Console.WriteLine(ex.Message);
 }
 
-async Task SendTelemetry(OpcClient client, string deviceId, VirtualDevice device)
+async Task SendTelemetry(OpcClient client, VirtualDevice device)
 {
     var telemetry = new
     {
-        production_status = client.ReadNode($"{deviceId}/ProductionStatus").Value,
-        workorder_id = client.ReadNode($"{deviceId}/WorkorderId").Value,
-        goodcount = client.ReadNode($"{deviceId}/GoodCount").Value,
-        badcount = client.ReadNode($"{deviceId}/BadCount").Value,
-        temperature = client.ReadNode($"{deviceId}/Temperature").Value
+        production_status = client.ReadNode($"{device.DeviceId}/ProductionStatus").Value,
+        workorder_id = client.ReadNode($"{device.DeviceId}/WorkorderId").Value,
+        goodcount = client.ReadNode($"{device.DeviceId}/GoodCount").Value,
+        badcount = client.ReadNode($"{device.DeviceId}/BadCount").Value,
+        temperature = client.ReadNode($"{device.DeviceId}/Temperature").Value
     };
 
     await device.SendMessage(telemetry);
 }
 
-async Task<VirtualDevice.DeviceErrors> CheckErrors(OpcClient client, string deviceId, VirtualDevice device, VirtualDevice.DeviceErrors previousErrorState)
+async Task CheckErrors(OpcClient client, VirtualDevice device)
 {
-    VirtualDevice.DeviceErrors device_errors = (VirtualDevice.DeviceErrors)client.ReadNode($"{deviceId}/DeviceError").Value;
+    VirtualDevice.DeviceErrors device_errors = (VirtualDevice.DeviceErrors)client.ReadNode($"{device.DeviceId}/DeviceError").Value;
 
     var errors = new { device_errors };
 
-    if(previousErrorState != device_errors)
+    if(device.Errors != device_errors)
     {
-        Console.WriteLine($"New errors: {device_errors}");
+        Console.WriteLine($"{device.DeviceId}: New errors: {device_errors}");
         await device.SendMessage(errors);
+        await device.UpdateTwinErrorsAsync(device_errors);
+        device.Errors = device_errors;
     }
-
-    return device_errors;
 }
+
+async Task CheckProductionRate(OpcClient client, VirtualDevice device)
+{
+    int production_rate = (int)client.ReadNode($"{device.DeviceId}/ProductionRate").Value;
+
+    if (device.ProductionRate != production_rate)
+    {
+        Console.WriteLine($"{device.DeviceId}: Production rate changed to: {production_rate}");
+        await device.UpdateTwinProductionRateAsync(production_rate);
+        device.ProductionRate = production_rate;
+    }
+}
+
 
 void SetDeviceIds(OpcNodeInfo node, List<string> deviceIds, int level = 0)
 {
