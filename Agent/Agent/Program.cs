@@ -2,26 +2,26 @@
 using DeviceSDK;
 using Opc.UaFx.Client;
 using Opc.UaFx;
+using Newtonsoft.Json;
 
+ConfigJsonFile config = ReadConfigFile("..\\..\\..\\config.json");
+Console.WriteLine("Config OK");
 
-List<string> deviceConnectionStrings = new List<string>();
-deviceConnectionStrings.Add("HostName=zajecia2023.azure-devices.net;DeviceId=Device1;SharedAccessKey=eVc1/BofDrZdvWYa8JBrBVmMyTLPmtSoxZy1WXE05MA=");
-deviceConnectionStrings.Add("HostName=zajecia2023.azure-devices.net;DeviceId=Device2;SharedAccessKey=kQ9xHtbIHJFIgoZNTCDaFrNdBF5jbNxZvszySxSNFrQ=");
 List<DeviceClient> deviceClients = new List<DeviceClient>();
 List<VirtualDevice> devices = new List<VirtualDevice>();
 List<string> deviceIds = new List<string>();
 
 try
 {
-    using (var client = new OpcClient("opc.tcp://localhost:4840"))
+    using (var client = new OpcClient(config.opc_server_adress))
     {
         client.Connect();
         Console.WriteLine("Client is connected");
 
         Console.WriteLine("Setting up device clients");
-        for(int i = 0; i < deviceConnectionStrings.Count; i++)
+        for(int i = 0; i < config.device_connection_strings.Length; i++)
         {
-            deviceClients.Add(DeviceClient.CreateFromConnectionString(deviceConnectionStrings[i]));
+            deviceClients.Add(DeviceClient.CreateFromConnectionString(config.device_connection_strings[i]));
             await deviceClients[i].OpenAsync();
             devices.Add(new VirtualDevice(deviceClients[i], client));
             await devices[i].InitializeHandlers();
@@ -98,7 +98,6 @@ async Task CheckProductionRate(OpcClient client, VirtualDevice device)
     }
 }
 
-
 void SetDeviceIds(OpcNodeInfo node, List<string> deviceIds, int level = 0)
 {
     if (level == 1 && node.NodeId.ToString().Contains("Device"))
@@ -106,4 +105,18 @@ void SetDeviceIds(OpcNodeInfo node, List<string> deviceIds, int level = 0)
     level++;
     foreach (var child in node.Children())
         SetDeviceIds(child, deviceIds, level);
+}
+
+ConfigJsonFile ReadConfigFile(string path)
+{
+    StreamReader r = new StreamReader(path);
+    string configFileContent = r.ReadToEnd();
+    var configJsonFIile = JsonConvert.DeserializeObject<ConfigJsonFile>(configFileContent);
+    return configJsonFIile;
+}
+
+public class ConfigJsonFile
+{
+    public string opc_server_adress { get; set; }
+    public string[] device_connection_strings { get; set; }
 }
