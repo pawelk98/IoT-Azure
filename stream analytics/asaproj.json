@@ -1,0 +1,30 @@
+{
+    "name": "job",
+    "startFile": "Transformation.asaql",
+    "configurations": [
+        {
+            "filePath": "JobConfig.json",
+            "subType": "JobConfig"
+        },
+        {
+            "filePath": "Outputs/errors.json",
+            "subType": "Output"
+        },
+        {
+            "filePath": "Outputs/goodbadcount.json",
+            "subType": "Output"
+        },
+        {
+            "filePath": "Outputs/prodkpi.json",
+            "subType": "Output"
+        },
+        {
+            "filePath": "Outputs/temperature.json",
+            "subType": "Output"
+        },
+        {
+            "filePath": "Inputs/iothub.json",
+            "subType": "Input"
+        }
+    ]
+}

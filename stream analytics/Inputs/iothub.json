@@ -1,0 +1,20 @@
+{
+    "Name": "iothub",
+    "Type": "Data Stream",
+    "DataSourceType": "IoT Hub",
+    "IoTHubProperties": {
+        "IotHubNamespace": "zajecia2023",
+        "Endpoint": "messages/events",
+        "SharedAccessPolicyName": "iothubowner",
+        "SharedAccessPolicyKey": "********",
+        "ConsumerGroupName": "$Default"
+    },
+    "DataSourceCredentialDomain": "de3dfe07-647f-4804-8f13-493425269de3.StreamAnalystics",
+    "Serialization": {
+        "Type": "Json",
+        "Encoding": "UTF8"
+    },
+    "PartitionKey": "",
+    "CompressionType": "None",
+    "ScriptType": "Input"
+}

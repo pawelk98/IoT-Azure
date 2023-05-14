@@ -29,6 +29,6 @@ INTO [errors]
     workorder_id, 
     COUNT(*) AS error_count
 FROM [iothub]
-WHERE device_error IS NOT NULL
+WHERE device_errors IS NOT NULL
 GROUP BY workorder_id, TumblingWindow(minute,1)) AS test
 WHERE  test.error_count > 3
